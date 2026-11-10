@@ -1,0 +1,8 @@
+name: Probe
+on: workflow_dispatch
+jobs:
+  long:
+    runs-on: macos-latest
+    timeout-minutes: 360
+    steps:
+      - run: echo hi
