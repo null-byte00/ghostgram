@@ -1,0 +1,40 @@
+workflows:
+  ghostgram-ipa:
+    name: Ghostgram unsigned IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 180
+    environment:
+      xcode: latest
+      vars:
+        # add TG_API_ID and TG_API_HASH as secure variables in the Codemagic UI
+        BUILD_NUMBER: "1"
+    scripts:
+      - name: Show toolchain
+        script: |
+          xcodebuild -version
+          ls /Applications | grep -i xcode || true
+      - name: Prepare config
+        script: |
+          python3 - <<'PY'
+          import json, os
+          c = json.load(open('build-system/appstore-configuration.json'))
+          c['api_id'] = os.environ['TG_API_ID']
+          c['api_hash'] = os.environ['TG_API_HASH']
+          json.dump(c, open('build-system/ghostgram-ci.json', 'w'), indent=2)
+          PY
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+      - name: Build unsigned IPA
+        script: |
+          build-system/GGXcodeConfig.sh || true
+          GG_PATCHES_ONLY=1 build-system/GGBuild.sh || true
+          mkdir -p build-output/ipa
+          python3 -u build-system/Make/Make.py --overrideXcodeVersion \
+            --cacheDir "$HOME/telegram-bazel-cache" \
+            build \
+            --configurationPath build-system/ghostgram-ci.json \
+            --codesigningInformationPath build-system/fake-codesigning \
+            --buildNumber=$BUILD_NUMBER --configuration=release_arm64 \
+            --outputBuildArtifactsPath build-output/ipa
+          mv build-output/ipa/Telegram.ipa build-output/ipa/Ghostgram.ipa
+    artifacts:
+      - build-output/ipa/Ghostgram.ipa
