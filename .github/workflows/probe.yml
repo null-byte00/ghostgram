@@ -1,0 +1,11 @@
+name: Probe
+on: workflow_dispatch
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  b:
+    runs-on: macos-latest
+    steps:
+      - run: sw_vers; xcodebuild -version; ls /Applications | grep -i xcode
